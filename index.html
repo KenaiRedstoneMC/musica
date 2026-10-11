@@ -282,7 +282,8 @@ h1 { text-align: center; margin-bottom: 22px; }
   <h2>🎵 Nueva música</h2>
 
   <p class="help">
-    Las canciones de esta pestaña mantienen sus nombres exactos y se cargan desde music/.
+    Sube los MP3 nuevos a la carpeta music/ de GitHub
+    y añade sus nombres al array cancionesNuevas.
   </p>
 
   <div class="search">
@@ -310,8 +311,9 @@ h1 { text-align: center; margin-bottom: 22px; }
   <h2>🎃 Música de Halloween y Terror</h2>
 
   <p class="help">
-    Lista con los nombres exactos de los MP3 de Halloween. Se comprueban contra
-    los archivos reales de la carpeta music/ de GitHub.
+    Música de miedo, sonidos terroríficos, ambientes misteriosos
+    y temas especiales para Halloween. Todos los archivos se
+    cargan desde la carpeta music/ de GitHub.
   </p>
 
   <div class="search">
@@ -465,11 +467,11 @@ const cancionesNuevas = [
   { archivo: "Victory 10.mp3", titulo: "Victory 10" },
   { archivo: "-Yakety Sax- Music.mp3", titulo: "-Yakety Sax- Music" },
   { archivo: "You & Me.mp3", titulo: "You & Me" },
-  { archivo: "【メタルアレンジ】MoonOverTheCastle.mp3", titulo: "【メタルアレンジ】Moon Over The Castle" },
+  { archivo: "【メタルアレンジ】Moon　Over　The　Castle.mp3", titulo: "【メタルアレンジ】Moon Over The Castle" },
   { archivo: "Dapper's Groove.mp3", titulo: "Dapper's Groove" },
   { archivo: "Day & Night.mp3", titulo: "Day & Night" },
   { archivo: "El Conquistador.mp3", titulo: "El Conquistador" },
-  { archivo: "el mambo.mp3", titulo: "el mambo" },
+  { archivo: "El Mambo.mp3", titulo: "El Mambo" },
   { archivo: "Extra Fries.mp3", titulo: "Extra Fries" },
   { archivo: "Glitz At The Ritz.mp3", titulo: "Glitz At The Ritz" },
   { archivo: "Hit the Road Jack.mp3", titulo: "Hit the Road Jack" },
@@ -493,83 +495,23 @@ const cancionesNuevas = [
 ];
 
 /* =====================================================
-   HALLOWEEN: CARGA AUTOMÁTICA DESDE music/ EN GITHUB
-   GitHub Pages no permite listar carpetas directamente, así que
-   consultamos la API pública del repositorio.
+   HALLOWEEN: LOS 12 ARCHIVOS NUEVOS
    ===================================================== */
 
-// Solo se muestran estos 12 temas en Halloween; se verifican contra los archivos reales de music/.
-const archivosHalloweenDeseados = [
-  'mica-levi-lipstick-to-void-128-ytshorts.savetube.me.mp3',
-  'Calling All the Monsters - China Anne McClain - SoundLoadMate.com.mp3',
-  'Thomas Bergersen feat. Merethe Soltvedt – Children of the Sun - Epic Music Dx - SoundLoadMate.com.mp3',
-  'Rocky Horror Picture Show The Time Warp (music video).mp3',
-  'Te reto a escuchar esto con los ojos cerrados (Audio 8D) ｜ Terror Auditivo.mp3',
-  'Sonidos y efectos para HALLOWEEN. Sonidos de terror.mp3',
-  'los MEJORES sonidos HALLOWEEN 🎃 TERROR 😱😱😱 Gritos y Sonidos de MIEDO y SUSPENSO Ambiental Asustar.mp3',
-  'Spooky Halloween Ambienc.mp3',
-  'Sonidos Bosque Misterioso.mp3',
-  'HalloweenTheme.mp3',
-  'DEAD SILENCE.mp3',
-  'Cozy Autumn Village Halloween Ambience 🎃 Scary Halloween Sounds👻 Halloween Background Music.mp3'
+const cancionesHalloween = [
+  "Cozy Autumn Village Halloween Ambience Scary Halloween Sounds Halloween Background Music.mp3",
+  "DEAD SILENCE.mp3",
+  "Halloween Theme.mp3",
+  "Sonidos Bosque Misterioso.mp3",
+  "Spooky Halloween Ambienc.mp3",
+  "los MEJORES sonidos HALLOWEEN TERROR Gritos y Sonidos de MIEDO Y SUSPENSO Ambiental Asustar.mp3",
+  "Sonidos y efectos para HALLOWEEN. Sonidos de terror.mp3",
+  "¿Te reto a escuchar esto con los ojos cerrados (Audio 8D) | Terror Auditivo.mp3",
+  "Rocky Horror Picture Show The Time Warp (music video).mp3",
+  "Thomas Bergersen feat. Merethe Soltvedt - Children of the Sun - Epic Music Dx - SoundLoadMate.com.mp3",
+  "Calling All the Monsters - China Anne McClain - SoundLoadMate.com.mp3",
+  "mica-levi-lipstick-to-void-128-ytshorts.savetube.me.mp3"
 ];
-let cancionesHalloween = [];
-let halloweenCargado = false;
-let cargandoHalloween = false;
-
-async function cargarHalloweenDesdeGitHub() {
-  if (cargandoHalloween) return;
-  cargandoHalloween = true;
-  estadoHalloween.textContent = "🎃 Buscando automáticamente los MP3 de music/...";
-  musicListHalloween.innerHTML = "";
-
-  try {
-    const respuesta = await fetch(
-      "https://api.github.com/repos/KenaiRedstoneMC/panel-musica/contents/music?ref=main",
-      { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" }
-    );
-
-    if (!respuesta.ok) {
-      throw new Error("GitHub respondió con el código " + respuesta.status);
-    }
-
-    const archivos = await respuesta.json();
-    // GitHub devuelve los nombres reales de music/. Normalizamos Unicode para
-    // evitar diferencias invisibles entre tildes/caracteres compuestos.
-    const archivosMp3 = archivos.filter(item => item.type === "file" && /\.mp3$/i.test(item.name));
-    const porNombreNormalizado = new Map(
-      archivosMp3.map(item => [item.name.normalize("NFC"), item.name])
-    );
-
-    cancionesHalloween = archivosHalloweenDeseados
-      .map(nombre => porNombreNormalizado.get(nombre.normalize("NFC")))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
-
-    const noEncontrados = archivosHalloweenDeseados.filter(
-      nombre => !porNombreNormalizado.has(nombre.normalize("NFC"))
-    );
-
-    halloweenCargado = true;
-    if (!cancionesHalloween.length) {
-      estadoHalloween.textContent = "No se encontró ninguno de los MP3 de Halloween en music/. Revisa los nombres exactos y que estén subidos a GitHub.";
-      musicListHalloween.innerHTML = "";
-      return;
-    }
-
-    renderHalloween(searchHalloween.value);
-    if (noEncontrados.length) {
-      estadoHalloween.textContent += " · No encontrados en music/: " + noEncontrados.join(" | ");
-    }
-  } catch (error) {
-    estadoHalloween.textContent =
-      "No se pudo obtener la lista automática de GitHub. Comprueba tu conexión y que el repositorio sea público. " + error.message;
-    musicListHalloween.innerHTML =
-      '<p class="message">No se ha podido cargar la lista de Halloween. Pulsa «Actualizar lista» para intentarlo de nuevo.</p>';
-  } finally {
-    cargandoHalloween = false;
-  }
-}
 
 /* =====================================================
    ELEMENTOS Y VARIABLES GENERALES
@@ -747,8 +689,8 @@ function showTab(tab) {
     renderNuevaMusica(searchNueva.value);
   }
 
-  if (esHalloween && !halloweenCargado && !cargandoHalloween) {
-    cargarHalloweenDesdeGitHub();
+  if (esHalloween && !musicListHalloween.children.length) {
+    renderHalloween(searchHalloween.value);
   }
 }
 
@@ -857,21 +799,16 @@ function renderHalloween(filter = "") {
   musicListHalloween.innerHTML = "";
   audioListHalloween = [];
 
-  if (!halloweenCargado) {
-    estadoHalloween.textContent = "🎃 Cargando los archivos MP3 de GitHub...";
-    return;
-  }
-
   const filtradas = cancionesHalloween.filter(nombre =>
     nombre.toLocaleLowerCase().includes(filter.toLocaleLowerCase())
   );
 
   estadoHalloween.textContent =
-    `${filtradas.length} de ${cancionesHalloween.length} archivos MP3 de music/`;
+    `${filtradas.length} de ${cancionesHalloween.length} canciones de Halloween`;
 
   if (!filtradas.length) {
     musicListHalloween.innerHTML =
-      '<p class="message">No hay archivos MP3 que coincidan con la búsqueda.</p>';
+      '<p class="message">No hay canciones que coincidan con la búsqueda.</p>';
     return;
   }
 
@@ -901,8 +838,7 @@ searchHalloween.oninput = event => {
 };
 
 document.getElementById("reloadHalloween").onclick = () => {
-  halloweenCargado = false;
-  cargarHalloweenDesdeGitHub();
+  renderHalloween(searchHalloween.value);
 };
 
 document.getElementById("loopHalloween").onclick = event => {
