@@ -250,6 +250,11 @@ h1 { text-align: center; margin-bottom: 22px; }
           onclick="showTab('halloween')">
     🎃 Halloween
   </button>
+
+  <button class="tab" id="tabBtnDormir"
+          onclick="showTab('dormir')">
+    🌙 Música para dormir
+  </button>
 </div>
 
 <div class="controls">
@@ -333,6 +338,36 @@ h1 { text-align: center; margin-bottom: 22px; }
   <div class="music-list" id="musicListHalloween"></div>
 
   <div class="indicator" id="activeSongHalloween">
+    Ninguna canción seleccionada
+  </div>
+</section>
+
+<!-- MÚSICA PARA DORMIR -->
+<section id="tabDormir" hidden>
+  <h2>🌙 Música para dormir y relajarse</h2>
+
+  <p class="help">
+    Temas tranquilos y relajantes para descansar, desconectar
+    o crear un ambiente calmado. Los archivos se cargan desde
+    la carpeta music/ de GitHub.
+  </p>
+
+  <div class="search">
+    <input id="searchDormir" placeholder="Buscar música para dormir...">
+  </div>
+
+  <div class="controls">
+    <button id="reloadDormir">🔄 Actualizar lista</button>
+    <button id="loopDormir">LOOP PARA DORMIR: OFF</button>
+  </div>
+
+  <div id="estadoDormir" class="message">
+    🌙 Preparando la lista para dormir...
+  </div>
+
+  <div class="music-list" id="musicListDormir"></div>
+
+  <div class="indicator" id="activeSongDormir">
     Ninguna canción seleccionada
   </div>
 </section>
@@ -456,6 +491,11 @@ const songs = [
    ===================================================== */
 
 const cancionesNuevas = [
+  { archivo: "Your Idol - Saja Boys (From _ KPop Demon Hunters_) Español.mp3", titulo: "Your Idol - Saja Boys (From _ KPop Demon Hunters_) Español" },
+  { archivo: "Tron_Lightcycle_Run.mp3", titulo: "Tron_Lightcycle_Run" },
+  { archivo: "Proud Nation - Immediate Music.mp3", titulo: "Proud Nation - Immediate Music" },
+  { archivo: "Megamix del playlist Xabi Rain (hearthis.at).mp3", titulo: "Megamix del playlist Xabi Rain (hearthis.at)" },
+  { archivo: "Sesin concurso DJs Europa FM (hearthis.at).mp3", titulo: "Sesin concurso DJs Europa FM (hearthis.at)" },
   { archivo: "The Cinematic Orchestra - To Build A Home.mp3", titulo: "The Cinematic Orchestra - To Build A Home" },
   { archivo: "Cotton Eye Joe - Rednex (Lyrics).mp3", titulo: "Cotton Eye Joe - Rednex (Lyrics)" },
   { archivo: "Jumpin' Jack (Album Version).mp3", titulo: "Jumpin' Jack (Album Version)" },
@@ -516,6 +556,18 @@ const cancionesHalloween = [
 ];
 
 /* =====================================================
+   MÚSICA PARA DORMIR Y RELAJARSE
+   ===================================================== */
+
+const cancionesDormir = [
+  { archivo: "musica-zero_project_Ilotana.mp3", titulo: "musica-zero_project_Ilotana" },
+  { archivo: "descargar-musica-gratis-dormir-namaste.mp3", titulo: "descargar-musica-gratis-dormir-namaste" },
+  { archivo: "musica relajante 1.mp3", titulo: "Música relajante 1" },
+  { archivo: "The Cinematic Orchestra - To Build A Home.mp3", titulo: "The Cinematic Orchestra - To Build A Home" },
+  { archivo: "Clouds_FYsnaLesV3o.mp3", titulo: "Clouds" }
+];
+
+/* =====================================================
    ELEMENTOS Y VARIABLES GENERALES
    ===================================================== */
 
@@ -536,14 +588,21 @@ const activeSongHalloween = document.getElementById("activeSongHalloween");
 const searchHalloween = document.getElementById("searchHalloween");
 const estadoHalloween = document.getElementById("estadoHalloween");
 
+const musicListDormir = document.getElementById("musicListDormir");
+const activeSongDormir = document.getElementById("activeSongDormir");
+const searchDormir = document.getElementById("searchDormir");
+const estadoDormir = document.getElementById("estadoDormir");
+
 let currentAudio = null;
 let loopMode = false;
 let loopNueva = false;
 let loopHalloween = false;
+let loopDormir = false;
 
 let audioList = [];
 let audioListNueva = [];
 let audioListHalloween = [];
+let audioListDormir = [];
 
 /* =====================================================
    FUNCIONES GENERALES
@@ -560,7 +619,8 @@ function stopOtherAudios(audio) {
   [
     ...audioList,
     ...audioListNueva,
-    ...audioListHalloween
+    ...audioListHalloween,
+    ...audioListDormir
   ].forEach(a => {
     if (a !== audio) {
       a.pause();
@@ -673,10 +733,12 @@ function showTab(tab) {
   const esActual = tab === "actual";
   const esNueva = tab === "nueva";
   const esHalloween = tab === "halloween";
+  const esDormir = tab === "dormir";
 
   document.getElementById("tabActual").hidden = !esActual;
   document.getElementById("tabNueva").hidden = !esNueva;
   document.getElementById("tabHalloween").hidden = !esHalloween;
+  document.getElementById("tabDormir").hidden = !esDormir;
 
   document.getElementById("tabBtnActual")
     .classList.toggle("active", esActual);
@@ -686,6 +748,13 @@ function showTab(tab) {
 
   document.getElementById("tabBtnHalloween")
     .classList.toggle("active", esHalloween);
+
+  document.getElementById("tabBtnDormir")
+    .classList.toggle("active", esDormir);
+
+  if (esDormir && !musicListDormir.children.length) {
+    renderDormir(searchDormir.value);
+  }
 
   if (esNueva && !musicListNueva.children.length) {
     renderNuevaMusica(searchNueva.value);
@@ -855,6 +924,59 @@ document.getElementById("loopHalloween").onclick = event => {
 };
 
 /* =====================================================
+   MÚSICA PARA DORMIR
+   ===================================================== */
+
+function renderDormir(filter = "") {
+  musicListDormir.innerHTML = "";
+  audioListDormir = [];
+
+  const filtradas = cancionesDormir.filter(cancion =>
+    cancion.titulo.toLocaleLowerCase().includes(filter.toLocaleLowerCase()) ||
+    cancion.archivo.toLocaleLowerCase().includes(filter.toLocaleLowerCase())
+  );
+
+  estadoDormir.textContent =
+    `${filtradas.length} de ${cancionesDormir.length} canciones para dormir`;
+
+  if (!filtradas.length) {
+    musicListDormir.innerHTML =
+      '<p class="message">No hay canciones que coincidan con la búsqueda.</p>';
+    return;
+  }
+
+  filtradas.forEach(cancion => {
+    const audio = makePlayer(
+      musicListDormir,
+      cancion.archivo,
+      cancion.titulo,
+      () => loopDormir,
+      message => {
+        activeSongDormir.textContent = message
+          ? (message.startsWith("No se pudo")
+              ? message
+              : "🌙 Reproduciendo: " + message)
+          : "Ninguna canción seleccionada";
+      }
+    );
+    audioListDormir.push(audio);
+  });
+}
+
+searchDormir.oninput = event => renderDormir(event.target.value);
+
+document.getElementById("reloadDormir").onclick = () => {
+  renderDormir(searchDormir.value);
+};
+
+document.getElementById("loopDormir").onclick = event => {
+  loopDormir = !loopDormir;
+  event.currentTarget.textContent =
+    `LOOP PARA DORMIR: ${loopDormir ? "ON" : "OFF"}`;
+  audioListDormir.forEach(audio => audio.loop = loopDormir);
+};
+
+/* =====================================================
    VOLUMEN GENERAL COMPARTIDO
    ===================================================== */
 
@@ -864,7 +986,8 @@ volume.oninput = event => {
   [
     ...audioList,
     ...audioListNueva,
-    ...audioListHalloween
+    ...audioListHalloween,
+    ...audioListDormir
   ].forEach(audio => {
     audio.volume = nuevoVolumen;
   });
