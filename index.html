@@ -380,31 +380,20 @@ h1 { text-align: center; margin-bottom: 22px; }
 <!-- MÚSICA PENDRIVES TXABER -->
 <section id="tabPendrives" hidden>
   <h2>💿 Música Pendrives Txaber</h2>
-
   <p class="help">
     Esta sección carga automáticamente los archivos MP3 y M4A
     de music/MÚSICA PENDRIVES TXABER/, incluidas sus subcarpetas.
   </p>
-
   <div class="search">
-    <input id="searchPendrives"
-           placeholder="Buscar música de Pendrives Txaber...">
+    <input id="searchPendrives" placeholder="Buscar música de Pendrives Txaber...">
   </div>
-
   <div class="controls">
     <button id="reloadPendrives">🔄 Actualizar lista</button>
     <button id="loopPendrives">LOOP PENDRIVES TXABER: OFF</button>
   </div>
-
-  <div id="estadoPendrives" class="message">
-    💿 Preparando la lista...
-  </div>
-
+  <div id="estadoPendrives" class="message">💿 Preparando la lista...</div>
   <div class="music-list" id="musicListPendrives"></div>
-
-  <div class="indicator" id="activeSongPendrives">
-    Ninguna canción seleccionada
-  </div>
+  <div class="indicator" id="activeSongPendrives">Ninguna canción seleccionada</div>
 </section>
 
 </div>
@@ -571,7 +560,7 @@ const cancionesNuevas = [
 ];
 
 /* =====================================================
-   HALLOWEEN
+   HALLOWEEN: LOS 12 ARCHIVOS NUEVOS
    ===================================================== */
 
 const cancionesHalloween = [
@@ -591,7 +580,7 @@ const cancionesHalloween = [
 ];
 
 /* =====================================================
-   MÚSICA PARA DORMIR
+   MÚSICA PARA DORMIR Y RELAJARSE
    ===================================================== */
 
 const cancionesDormir = [
@@ -678,8 +667,13 @@ function stopOtherAudios(audio) {
 }
 
 function makeAudioURL(filename) {
-  return "music/" +
-    filename.split("/").map(part => encodeURIComponent(part)).join("/");
+  // Las listas normales usan nombres de archivo; Pendrives usa rutas
+  // completas que ya empiezan por music/. Evitar duplicar ese prefijo.
+  const ruta = filename.replace(/^\/+/, "");
+  const rutaCompleta = /^music\//i.test(ruta) ? ruta : "music/" + ruta;
+  return rutaCompleta.split("/")
+    .map(parte => encodeURIComponent(parte))
+    .join("/");
 }
 
 function makePlayer(container, filename, title, loopGetter, onPlay) {
@@ -724,7 +718,7 @@ function makePlayer(container, filename, title, loopGetter, onPlay) {
       onPlay(title);
     } catch (error) {
       onPlay("No se pudo reproducir: " + filename +
-        ". Comprueba que el archivo existe en music/ y que el nombre coincide exactamente.");
+        ". Comprueba que el MP3 existe en music/ y que el nombre coincide exactamente.");
     }
   };
 
@@ -797,13 +791,10 @@ function showTab(tab) {
 
   document.getElementById("tabBtnDormir")
     .classList.toggle("active", esDormir);
-
   document.getElementById("tabBtnPendrives")
     .classList.toggle("active", esPendrives);
 
-  if (esPendrives && !pendrivesCargados) {
-    cargarPendrives();
-  }
+  if (esPendrives && !pendrivesCargados) cargarPendrives();
 
   if (esDormir && !musicListDormir.children.length) {
     renderDormir(searchDormir.value);
@@ -1012,7 +1003,6 @@ function renderDormir(filter = "") {
           : "Ninguna canción seleccionada";
       }
     );
-
     audioListDormir.push(audio);
   });
 }
@@ -1031,172 +1021,91 @@ document.getElementById("loopDormir").onclick = event => {
 };
 
 /* =====================================================
-   PENDRIVES TXABER
-   DETECCIÓN AUTOMÁTICA MP3 Y M4A
-   INCLUYE TODAS LAS SUBCARPETAS
+   PENDRIVES TXABER: DETECCIÓN AUTOMÁTICA MP3 Y M4A
    ===================================================== */
 
-const REPO_API =
-  "https://api.github.com/repos/kenairedstonemc/musica";
-
-const CARPETA_PENDRIVES =
-  "music/MÚSICA PENDRIVES TXABER";
+const REPO_API = "https://api.github.com/repos/kenairedstonemc/musica";
+const CARPETA_PENDRIVES = "music/MÚSICA PENDRIVES TXABER";
 
 async function cargarPendrives() {
-  estadoPendrives.textContent =
-    "💿 Buscando archivos MP3 y M4A en GitHub...";
-
+  estadoPendrives.textContent = "💿 Buscando archivos MP3 y M4A en GitHub...";
   musicListPendrives.innerHTML = "";
   pendrivesCargados = false;
 
   try {
-    // Consultar el repositorio
     const repoRespuesta = await fetch(REPO_API, {
-      headers: {
-        "Accept": "application/vnd.github+json"
-      },
+      headers: { "Accept": "application/vnd.github+json" },
       cache: "no-store"
     });
-
-    if (!repoRespuesta.ok) {
-      throw new Error(
-        "No se puede acceder al repositorio: " +
-        repoRespuesta.status
-      );
-    }
+    if (!repoRespuesta.ok) throw new Error("No se puede acceder al repositorio: " + repoRespuesta.status);
 
     const repo = await repoRespuesta.json();
     const rama = repo.default_branch;
-
-    // Obtener el árbol completo de archivos
     const arbolRespuesta = await fetch(
       `${REPO_API}/git/trees/${encodeURIComponent(rama)}?recursive=1`,
-      {
-        headers: {
-          "Accept": "application/vnd.github+json"
-        },
-        cache: "no-store"
-      }
+      { headers: { "Accept": "application/vnd.github+json" }, cache: "no-store" }
     );
-
-    if (!arbolRespuesta.ok) {
-      throw new Error(
-        "No se pudo consultar el contenido: " +
-        arbolRespuesta.status
-      );
-    }
+    if (!arbolRespuesta.ok) throw new Error("No se pudo consultar el contenido: " + arbolRespuesta.status);
 
     const arbol = await arbolRespuesta.json();
+    if (arbol.truncated) throw new Error("GitHub ha limitado el listado de archivos del repositorio.");
 
-    if (arbol.truncated) {
-      throw new Error(
-        "GitHub ha limitado el listado de archivos del repositorio."
-      );
-    }
-
-    const carpetaNormalizada =
-      CARPETA_PENDRIVES.normalize("NFC").toLocaleLowerCase();
-
-    // Buscar MP3 y M4A en la carpeta y todas sus subcarpetas
+    const carpetaNormalizada = CARPETA_PENDRIVES.normalize("NFC").toLocaleLowerCase();
     cancionesPendrives = arbol.tree
       .filter(item => {
         if (item.type !== "blob") return false;
-
-        const ruta = item.path.normalize("NFC");
-        const rutaMinuscula = ruta.toLocaleLowerCase();
-
-        if (!rutaMinuscula.startsWith(carpetaNormalizada + "/")) {
-          return false;
-        }
-
-        return /\.(mp3|m4a)$/i.test(ruta);
+        const rutaComparacion = item.path.normalize("NFC").toLocaleLowerCase();
+        return rutaComparacion.startsWith(carpetaNormalizada + "/") && /\.(mp3|m4a)$/i.test(item.path);
       })
-      .map(item => {
-        const rutaRelativa = item.path
-          .normalize("NFC")
-          .slice(CARPETA_PENDRIVES.length + 1);
-
-        return {
-          archivo: CARPETA_PENDRIVES + "/" + rutaRelativa,
-          titulo: rutaRelativa.replace(/\.(mp3|m4a)$/i, "")
-        };
-      })
-      .sort((a, b) =>
-        a.titulo.localeCompare(b.titulo, "es")
-      );
+      .map(item => ({
+        // Mantener la ruta exacta devuelta por GitHub, sin alterar Unicode.
+        archivo: item.path,
+        titulo: item.path.split("/").pop().replace(/\.(mp3|m4a)$/i, "")
+      }))
+      .sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
 
     pendrivesCargados = true;
-
     renderPendrives(searchPendrives.value);
-
-    if (cancionesPendrives.length === 0) {
-      estadoPendrives.textContent =
-        "⚠️ No se han encontrado archivos MP3 ni M4A en esa carpeta.";
+    if (!cancionesPendrives.length) {
+      estadoPendrives.textContent = "⚠️ No se han encontrado archivos MP3 ni M4A en esa carpeta.";
     }
-
   } catch (error) {
-    estadoPendrives.textContent =
-      "⚠️ Error al cargar la música: " + error.message;
+    estadoPendrives.textContent = "⚠️ Error al cargar la música: " + error.message;
   }
 }
 
 function renderPendrives(filtro = "") {
   musicListPendrives.innerHTML = "";
   audioListPendrives = [];
-
   const filtradas = cancionesPendrives.filter(c =>
-    c.titulo.toLocaleLowerCase().includes(
-      filtro.toLocaleLowerCase()
-    )
+    c.titulo.toLocaleLowerCase().includes(filtro.toLocaleLowerCase())
   );
-
-  estadoPendrives.textContent =
-    `${filtradas.length} de ${cancionesPendrives.length} archivos MP3 y M4A encontrados`;
+  estadoPendrives.textContent = `${filtradas.length} de ${cancionesPendrives.length} archivos MP3 y M4A encontrados`;
 
   if (!filtradas.length) {
-    musicListPendrives.innerHTML =
-      '<p class="message">No hay archivos MP3 o M4A que coincidan con la búsqueda.</p>';
+    musicListPendrives.innerHTML = '<p class="message">No hay archivos MP3 o M4A que coincidan con la búsqueda.</p>';
     return;
   }
 
   filtradas.forEach(cancion => {
-    const audio = makePlayer(
-      musicListPendrives,
-      cancion.archivo,
-      cancion.titulo,
+    const audio = makePlayer(musicListPendrives, cancion.archivo, cancion.titulo,
       () => loopPendrives,
       message => {
         activeSongPendrives.textContent = message
-          ? (
-              message.startsWith("No se pudo")
-                ? message
-                : "💿 Reproduciendo: " + message
-            )
+          ? (message.startsWith("No se pudo") ? message : "💿 Reproduciendo: " + message)
           : "Ninguna canción seleccionada";
       }
     );
-
     audioListPendrives.push(audio);
   });
 }
 
-searchPendrives.oninput = event => {
-  renderPendrives(event.target.value);
-};
-
-document.getElementById("reloadPendrives").onclick = () => {
-  cargarPendrives();
-};
-
+searchPendrives.oninput = event => renderPendrives(event.target.value);
+document.getElementById("reloadPendrives").onclick = () => cargarPendrives();
 document.getElementById("loopPendrives").onclick = event => {
   loopPendrives = !loopPendrives;
-
-  event.currentTarget.textContent =
-    `LOOP PENDRIVES TXABER: ${loopPendrives ? "ON" : "OFF"}`;
-
-  audioListPendrives.forEach(audio => {
-    audio.loop = loopPendrives;
-  });
+  event.currentTarget.textContent = `LOOP PENDRIVES TXABER: ${loopPendrives ? "ON" : "OFF"}`;
+  audioListPendrives.forEach(audio => audio.loop = loopPendrives);
 };
 
 /* =====================================================
@@ -1218,13 +1127,12 @@ volume.oninput = event => {
 };
 
 /* =====================================================
-   INICIO
+   INICIO: ABRIR NUEVA MÚSICA
    ===================================================== */
 
 renderSongs();
 renderNuevaMusica();
 showTab("nueva");
-
 </script>
 </body>
 </html>
