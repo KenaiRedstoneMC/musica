@@ -255,6 +255,11 @@ h1 { text-align: center; margin-bottom: 22px; }
           onclick="showTab('dormir')">
     🌙 Música para dormir
   </button>
+
+  <button class="tab" id="tabBtnPendrives"
+          onclick="showTab('pendrives')">
+    💿 Música Pendrives Txaber
+  </button>
 </div>
 
 <div class="controls">
@@ -368,6 +373,34 @@ h1 { text-align: center; margin-bottom: 22px; }
   <div class="music-list" id="musicListDormir"></div>
 
   <div class="indicator" id="activeSongDormir">
+    Ninguna canción seleccionada
+  </div>
+</section>
+
+<!-- MÚSICA PENDRIVES TXABER -->
+<section id="tabPendrives" hidden>
+  <h2>💿 Música Pendrives Txaber</h2>
+  <p class="help">
+    Esta sección carga automáticamente los archivos MP3 de
+    music/MÚSICA PENDRIVES TXABER/ desde el repositorio de GitHub.
+  </p>
+
+  <div class="search">
+    <input id="searchPendrives" placeholder="Buscar música de Pendrives Txaber...">
+  </div>
+
+  <div class="controls">
+    <button id="reloadPendrives">🔄 Actualizar lista</button>
+    <button id="loopPendrives">LOOP PENDRIVES TXABER: OFF</button>
+  </div>
+
+  <div id="estadoPendrives" class="message">
+    💿 Preparando la lista...
+  </div>
+
+  <div class="music-list" id="musicListPendrives"></div>
+
+  <div class="indicator" id="activeSongPendrives">
     Ninguna canción seleccionada
   </div>
 </section>
@@ -592,16 +625,25 @@ const activeSongDormir = document.getElementById("activeSongDormir");
 const searchDormir = document.getElementById("searchDormir");
 const estadoDormir = document.getElementById("estadoDormir");
 
+const musicListPendrives = document.getElementById("musicListPendrives");
+const activeSongPendrives = document.getElementById("activeSongPendrives");
+const searchPendrives = document.getElementById("searchPendrives");
+const estadoPendrives = document.getElementById("estadoPendrives");
+
 let currentAudio = null;
 let loopMode = false;
 let loopNueva = false;
 let loopHalloween = false;
 let loopDormir = false;
+let loopPendrives = false;
+let pendrivesCargados = false;
+let cancionesPendrives = [];
 
 let audioList = [];
 let audioListNueva = [];
 let audioListHalloween = [];
 let audioListDormir = [];
+let audioListPendrives = [];
 
 /* =====================================================
    FUNCIONES GENERALES
@@ -619,7 +661,8 @@ function stopOtherAudios(audio) {
     ...audioList,
     ...audioListNueva,
     ...audioListHalloween,
-    ...audioListDormir
+    ...audioListDormir,
+    ...audioListPendrives
   ].forEach(a => {
     if (a !== audio) {
       a.pause();
@@ -733,11 +776,13 @@ function showTab(tab) {
   const esNueva = tab === "nueva";
   const esHalloween = tab === "halloween";
   const esDormir = tab === "dormir";
+  const esPendrives = tab === "pendrives";
 
   document.getElementById("tabActual").hidden = !esActual;
   document.getElementById("tabNueva").hidden = !esNueva;
   document.getElementById("tabHalloween").hidden = !esHalloween;
   document.getElementById("tabDormir").hidden = !esDormir;
+  document.getElementById("tabPendrives").hidden = !esPendrives;
 
   document.getElementById("tabBtnActual")
     .classList.toggle("active", esActual);
@@ -750,6 +795,12 @@ function showTab(tab) {
 
   document.getElementById("tabBtnDormir")
     .classList.toggle("active", esDormir);
+  document.getElementById("tabBtnPendrives")
+    .classList.toggle("active", esPendrives);
+
+  if (esPendrives && !pendrivesCargados) {
+    cargarPendrives();
+  }
 
   if (esDormir && !musicListDormir.children.length) {
     renderDormir(searchDormir.value);
@@ -976,6 +1027,97 @@ document.getElementById("loopDormir").onclick = event => {
 };
 
 /* =====================================================
+   MÚSICA PENDRIVES TXABER (CARGA AUTOMÁTICA DESDE GITHUB)
+   ===================================================== */
+
+const API_PENDRIVES =
+  "https://api.github.com/repos/kenairedstonemc/musica/contents/music/M%C3%9ASICA%20PENDRIVES%20TXABER";
+
+async function cargarPendrives() {
+  estadoPendrives.textContent = "💿 Buscando canciones en GitHub...";
+  musicListPendrives.innerHTML = "";
+
+  try {
+    const respuesta = await fetch(API_PENDRIVES, {
+      headers: { "Accept": "application/vnd.github+json" },
+      cache: "no-store"
+    });
+
+    if (!respuesta.ok) {
+      throw new Error(
+        respuesta.status === 404
+          ? "No encuentro la carpeta. Comprueba que está subida con el nombre exacto MÚSICA PENDRIVES TXABER dentro de music/."
+          : "GitHub respondió con el error " + respuesta.status
+      );
+    }
+
+    const archivos = await respuesta.json();
+    cancionesPendrives = archivos
+      .filter(item => item.type === "file" && /\.mp3$/i.test(item.name))
+      .map(item => ({
+        archivo: "MÚSICA PENDRIVES TXABER/" + item.name,
+        titulo: item.name.replace(/\.mp3$/i, "")
+      }))
+      .sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
+
+    pendrivesCargados = true;
+    renderPendrives(searchPendrives.value);
+  } catch (error) {
+    estadoPendrives.textContent =
+      "⚠️ No se pudo cargar la carpeta: " + error.message;
+  }
+}
+
+function renderPendrives(filtro = "") {
+  musicListPendrives.innerHTML = "";
+  audioListPendrives = [];
+
+  const filtradas = cancionesPendrives.filter(c =>
+    c.titulo.toLocaleLowerCase().includes(filtro.toLocaleLowerCase())
+  );
+
+  estadoPendrives.textContent =
+    `${filtradas.length} de ${cancionesPendrives.length} canciones de Pendrives Txaber`;
+
+  if (!filtradas.length) {
+    musicListPendrives.innerHTML =
+      '<p class="message">No hay canciones MP3 que coincidan con la búsqueda.</p>';
+    return;
+  }
+
+  filtradas.forEach(cancion => {
+    const audio = makePlayer(
+      musicListPendrives,
+      cancion.archivo,
+      cancion.titulo,
+      () => loopPendrives,
+      message => {
+        activeSongPendrives.textContent = message
+          ? (message.startsWith("No se pudo")
+              ? message
+              : "💿 Reproduciendo: " + message)
+          : "Ninguna canción seleccionada";
+      }
+    );
+    audioListPendrives.push(audio);
+  });
+}
+
+searchPendrives.oninput = event => renderPendrives(event.target.value);
+
+document.getElementById("reloadPendrives").onclick = () => {
+  pendrivesCargados = false;
+  cargarPendrives();
+};
+
+document.getElementById("loopPendrives").onclick = event => {
+  loopPendrives = !loopPendrives;
+  event.currentTarget.textContent =
+    `LOOP PENDRIVES TXABER: ${loopPendrives ? "ON" : "OFF"}`;
+  audioListPendrives.forEach(audio => audio.loop = loopPendrives);
+};
+
+/* =====================================================
    VOLUMEN GENERAL COMPARTIDO
    ===================================================== */
 
@@ -986,7 +1128,8 @@ volume.oninput = event => {
     ...audioList,
     ...audioListNueva,
     ...audioListHalloween,
-    ...audioListDormir
+    ...audioListDormir,
+    ...audioListPendrives
   ].forEach(audio => {
     audio.volume = nuevoVolumen;
   });
