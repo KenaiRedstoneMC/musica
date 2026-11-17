@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>Kenai 360° — Visor de fotos</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#07111f;--panel:#101e30;--green:#8cff00;--muted:#a9b7c9}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(ellipse at top,#142943 0,var(--bg) 58%);color:#f4f7fb;font-family:system-ui,Segoe UI,Arial,sans-serif;min-height:100vh}
+    header{padding:26px 20px 18px;text-align:center}
+    .brand{color:var(--green);font-size:.78rem;font-weight:800;letter-spacing:.22em;text-transform:uppercase}
+    h1{margin:8px 0;font-size:clamp(1.7rem,5vw,2.7rem)}
+    header p{margin:0;color:var(--muted)}
+    main{width:min(1100px,calc(100% - 28px));margin:0 auto 40px}
+    .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--panel);padding:14px;border:1px solid #263b54;border-radius:16px 16px 0 0}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    button,.pick{border:0;border-radius:10px;padding:11px 15px;background:var(--green);color:#101820;font-weight:800;cursor:pointer}
+    button.secondary{background:#263b54;color:white}
+    input{display:none}
+    #filename{color:var(--muted);font-size:.9rem;overflow-wrap:anywhere}
+    #viewer{height:min(68vh,650px);min-height:340px;background:#02060b;border:1px solid #263b54;border-top:0;border-radius:0 0 16px 16px;overflow:hidden}
+    .hint{text-align:center;color:var(--muted);font-size:.9rem;padding:16px}
+    .empty{height:100%;display:grid;place-items:center;text-align:center;padding:24px;color:#b9c7d8}
+    .empty strong{display:block;color:white;font-size:1.2rem;margin-bottom:8px}
+    footer{text-align:center;color:#72849a;font-size:.8rem;padding:0 15px 24px}
+    @media(max-width:600px){.toolbar{align-items:stretch}.actions{width:100%}.pick,button{flex:1;text-align:center}#filename{width:100%}#viewer{min-height:300px;height:58vh}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">KENAI_REDSTONE</div>
+    <h1>Visor de fotografías 360°</h1>
+    <p>Explora tus fotos de la GoPro MAX en una vista panorámica inmersiva.</p>
+  </header>
+  <main>
+    <section class="toolbar" aria-label="Controles del visor">
+      <div class="actions">
+        <label class="pick" for="photo">＋ Abrir foto JPG 360°</label>
+        <input id="photo" type="file" accept="image/jpeg,.jpg,.jpeg">
+        <button class="secondary" id="fullscreen" type="button">Pantalla completa</button>
+        <button class="secondary" id="reset" type="button">Reiniciar vista</button>
+      </div>
+      <span id="filename">Ninguna foto seleccionada</span>
+    </section>
+    <div id="viewer">
+      <div class="empty"><div><strong>Tu mundo, en 360°</strong>Selecciona una fotografía JPG panorámica para empezar.<br>Arrastra para mirar alrededor y usa la rueda para el zoom.</div></div>
+    </div>
+    <p class="hint">Las fotos se cargan localmente en tu navegador; no se suben a GitHub.</p>
+  </main>
+  <footer>KENAI 360° · Visor web para fotografías panorámicas equirectangulares</footer>
+  <script>
+    let viewer = null;
+    let currentUrl = null;
+    const input = document.getElementById('photo');
+    const filename = document.getElementById('filename');
+    const container = document.getElementById('viewer');
+
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+      currentUrl = URL.createObjectURL(file);
+      filename.textContent = file.name;
+      if (viewer) { viewer.destroy(); viewer = null; }
+      container.innerHTML = '';
+      viewer = pannellum.viewer('viewer', {
+        type: 'equirectangular',
+        panorama: currentUrl,
+        autoLoad: true,
+        showZoomCtrl: true,
+        showFullscreenCtrl: true,
+        compass: true,
+        hfov: 100,
+        minHfov: 40,
+        maxHfov: 120,
+        pitch: 0,
+        yaw: 0
+      });
+    });
+
+    document.getElementById('fullscreen').addEventListener('click', () => {
+      if (viewer) viewer.toggleFullscreen();
+      else if (container.requestFullscreen) container.requestFullscreen();
+    });
+    document.getElementById('reset').addEventListener('click', () => {
+      if (viewer) viewer.setPitch(0).setYaw(0).setHfov(100);
+    });
+  </script>
+</body>
+</html>
