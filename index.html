@@ -1199,9 +1199,9 @@ async function cargarGTA() {
       .filter(item => {
         if (item.type !== "blob") return false;
         const ruta = item.path.normalize("NFC").toLocaleLowerCase();
-        return ruta.startsWith(carpeta + "/") && /\\.(mp3|m4a|ogg|wav)$/i.test(item.path);
+        return ruta.startsWith(carpeta + "/") && /\.(mp3|m4a|ogg|wav)$/i.test(item.path);
       })
-      .map(item => ({ archivo: item.path, titulo: item.path.split("/").pop().replace(/\\.(mp3|m4a|ogg|wav)$/i, "") }))
+      .map(item => ({ archivo: item.path, titulo: item.path.split("/").pop().replace(/\.(mp3|m4a|ogg|wav)$/i, "") }))
       .sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
 
     gtaCargado = true;
