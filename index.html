@@ -4,6 +4,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0b0f1a">
+<meta name="application-name" content="Panel de Música">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Panel de Música">
+<link rel="icon" type="image/png" href="./1901091.png">
+<link rel="apple-touch-icon" href="./1901091.png">
 <title>Panel de Música</title>
 
 <style>
@@ -62,7 +69,22 @@ input, button { font-size: 16px; }
   z-index: 1;
 }
 
-h1 { text-align: center; margin-bottom: 22px; }
+.brand-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.brand-logo {
+  display: block;
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+  border-radius: 18px;
+  box-shadow: 0 0 22px rgba(162,0,255,.35);
+}
+h1 { text-align: center; margin: 0; }
 
 .tabs {
   display: flex;
@@ -233,7 +255,10 @@ h1 { text-align: center; margin-bottom: 22px; }
 <body>
 <div class="container">
 
-<h1>🎵 Panel de Música</h1>
+<div class="brand-header">
+  <img class="brand-logo" src="1901091.png" alt="Logo del Panel de Música">
+  <h1>🎵 Panel de Música</h1>
+</div>
 
 <div class="tabs">
   <button class="tab" id="tabBtnActual"
@@ -259,6 +284,11 @@ h1 { text-align: center; margin-bottom: 22px; }
   <button class="tab" id="tabBtnPendrives"
           onclick="showTab('pendrives')">
     💿 Música Pendrives Txaber
+  </button>
+
+  <button class="tab" id="tabBtnGTA"
+          onclick="showTab('gta')">
+    🚗 GTA VI
   </button>
 </div>
 
@@ -394,6 +424,26 @@ h1 { text-align: center; margin-bottom: 22px; }
   <div id="estadoPendrives" class="message">💿 Preparando la lista...</div>
   <div class="music-list" id="musicListPendrives"></div>
   <div class="indicator" id="activeSongPendrives">Ninguna canción seleccionada</div>
+</section>
+
+<!-- GTA VI -->
+<section id="tabGTA" hidden>
+  <h2>🎵 GTA VI</h2>
+  <p class="help">
+    Se muestran automáticamente los archivos de audio MP3, M4A, OGG y WAV
+    que añadas a music/GTA VI/ en este repositorio. Utiliza únicamente
+    archivos que tengas permiso para almacenar y reproducir.
+  </p>
+  <div class="search">
+    <input id="searchGTA" placeholder="Buscar música de GTA VI...">
+  </div>
+  <div class="controls">
+    <button id="reloadGTA">🔄 Actualizar lista</button>
+    <button id="loopGTA">LOOP GTA VI: OFF</button>
+  </div>
+  <div id="estadoGTA" class="message">🚗 Preparando la lista de GTA VI...</div>
+  <div class="music-list" id="musicListGTA"></div>
+  <div class="indicator" id="activeSongGTA">Ninguna canción seleccionada</div>
 </section>
 
 </div>
@@ -621,20 +671,29 @@ const activeSongPendrives = document.getElementById("activeSongPendrives");
 const searchPendrives = document.getElementById("searchPendrives");
 const estadoPendrives = document.getElementById("estadoPendrives");
 
+const musicListGTA = document.getElementById("musicListGTA");
+const activeSongGTA = document.getElementById("activeSongGTA");
+const searchGTA = document.getElementById("searchGTA");
+const estadoGTA = document.getElementById("estadoGTA");
+
 let currentAudio = null;
 let loopMode = false;
 let loopNueva = false;
 let loopHalloween = false;
 let loopDormir = false;
 let loopPendrives = false;
+let loopGTA = false;
 let pendrivesCargados = false;
+let gtaCargado = false;
 let cancionesPendrives = [];
+let cancionesGTA = [];
 
 let audioList = [];
 let audioListNueva = [];
 let audioListHalloween = [];
 let audioListDormir = [];
 let audioListPendrives = [];
+let audioListGTA = [];
 
 /* =====================================================
    FUNCIONES GENERALES
@@ -653,7 +712,8 @@ function stopOtherAudios(audio) {
     ...audioListNueva,
     ...audioListHalloween,
     ...audioListDormir,
-    ...audioListPendrives
+    ...audioListPendrives,
+    ...audioListGTA
   ].forEach(a => {
     if (a !== audio) {
       a.pause();
@@ -773,12 +833,14 @@ function showTab(tab) {
   const esHalloween = tab === "halloween";
   const esDormir = tab === "dormir";
   const esPendrives = tab === "pendrives";
+  const esGTA = tab === "gta";
 
   document.getElementById("tabActual").hidden = !esActual;
   document.getElementById("tabNueva").hidden = !esNueva;
   document.getElementById("tabHalloween").hidden = !esHalloween;
   document.getElementById("tabDormir").hidden = !esDormir;
   document.getElementById("tabPendrives").hidden = !esPendrives;
+  document.getElementById("tabGTA").hidden = !esGTA;
 
   document.getElementById("tabBtnActual")
     .classList.toggle("active", esActual);
@@ -793,8 +855,11 @@ function showTab(tab) {
     .classList.toggle("active", esDormir);
   document.getElementById("tabBtnPendrives")
     .classList.toggle("active", esPendrives);
+  document.getElementById("tabBtnGTA")
+    .classList.toggle("active", esGTA);
 
   if (esPendrives && !pendrivesCargados) cargarPendrives();
+  if (esGTA && !gtaCargado) cargarGTA();
 
   if (esDormir && !musicListDormir.children.length) {
     renderDormir(searchDormir.value);
@@ -1109,6 +1174,81 @@ document.getElementById("loopPendrives").onclick = event => {
 };
 
 /* =====================================================
+   GTA VI: DETECCIÓN AUTOMÁTICA DE ARCHIVOS DE AUDIO
+   ===================================================== */
+
+const CARPETA_GTA = "music/GTA VI";
+
+async function cargarGTA() {
+  estadoGTA.textContent = "🚗 Buscando archivos de audio en GitHub...";
+  musicListGTA.innerHTML = "";
+  gtaCargado = false;
+
+  try {
+    const respuesta = await fetch(
+      `${REPO_API}/git/trees/main?recursive=1`,
+      { headers: { "Accept": "application/vnd.github+json" }, cache: "no-store" }
+    );
+    if (!respuesta.ok) throw new Error("No se pudo consultar GitHub: " + respuesta.status);
+
+    const arbol = await respuesta.json();
+    if (arbol.truncated) throw new Error("GitHub ha limitado el listado de archivos.");
+
+    const carpeta = CARPETA_GTA.normalize("NFC").toLocaleLowerCase();
+    cancionesGTA = arbol.tree
+      .filter(item => {
+        if (item.type !== "blob") return false;
+        const ruta = item.path.normalize("NFC").toLocaleLowerCase();
+        return ruta.startsWith(carpeta + "/") && /\.(mp3|m4a|ogg|wav)$/i.test(item.path);
+      })
+      .map(item => ({ archivo: item.path, titulo: item.path.split("/").pop().replace(/\.(mp3|m4a|ogg|wav)$/i, "") }))
+      .sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
+
+    gtaCargado = true;
+    renderGTA(searchGTA.value);
+    if (!cancionesGTA.length) {
+      estadoGTA.textContent = "📂 Todavía no hay canciones. Añade tus archivos a music/GTA VI/ en GitHub.";
+    }
+  } catch (error) {
+    estadoGTA.textContent = "⚠️ Error al cargar GTA VI: " + error.message;
+  }
+}
+
+function renderGTA(filtro = "") {
+  musicListGTA.innerHTML = "";
+  audioListGTA = [];
+  const filtradas = cancionesGTA.filter(c =>
+    c.titulo.toLocaleLowerCase().includes(filtro.toLocaleLowerCase())
+  );
+  estadoGTA.textContent = `${filtradas.length} de ${cancionesGTA.length} archivos encontrados`;
+
+  if (!filtradas.length) {
+    musicListGTA.innerHTML = '<p class="message">No hay archivos que coincidan con la búsqueda.</p>';
+    return;
+  }
+
+  filtradas.forEach(cancion => {
+    const audio = makePlayer(musicListGTA, cancion.archivo, cancion.titulo,
+      () => loopGTA,
+      message => {
+        activeSongGTA.textContent = message
+          ? (message.startsWith("No se pudo") ? message : "🚗 Reproduciendo: " + message)
+          : "Ninguna canción seleccionada";
+      }
+    );
+    audioListGTA.push(audio);
+  });
+}
+
+searchGTA.oninput = event => renderGTA(event.target.value);
+document.getElementById("reloadGTA").onclick = () => cargarGTA();
+document.getElementById("loopGTA").onclick = event => {
+  loopGTA = !loopGTA;
+  event.currentTarget.textContent = `LOOP GTA VI: ${loopGTA ? "ON" : "OFF"}`;
+  audioListGTA.forEach(audio => audio.loop = loopGTA);
+};
+
+/* =====================================================
    VOLUMEN GENERAL COMPARTIDO
    ===================================================== */
 
@@ -1120,7 +1260,8 @@ volume.oninput = event => {
     ...audioListNueva,
     ...audioListHalloween,
     ...audioListDormir,
-    ...audioListPendrives
+    ...audioListPendrives,
+    ...audioListGTA
   ].forEach(audio => {
     audio.volume = nuevoVolumen;
   });
