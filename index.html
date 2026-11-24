@@ -1204,7 +1204,7 @@ async function cargarGTA() {
       .map(item => ({ archivo: item.path, titulo: item.path.split("/").pop().replace(/\.(mp3|m4a|ogg|wav)$/i, "") }))
       .sort((a, b) => {
         // Fijar esta canción arriba independientemente de la extensión o mayúsculas.
-        const idDestacado = "[c9b5K6QBm-k]";
+        const idDestacado = "[JLERPBprIuM]";
         const aDestacada = a.titulo.toLocaleLowerCase("es").includes(idDestacado.toLocaleLowerCase("es"));
         const bDestacada = b.titulo.toLocaleLowerCase("es").includes(idDestacado.toLocaleLowerCase("es"));
         if (aDestacada && !bDestacada) return -1;
