@@ -1202,7 +1202,14 @@ async function cargarGTA() {
         return ruta.startsWith(carpeta + "/") && /\.(mp3|m4a|ogg|wav)$/i.test(item.path);
       })
       .map(item => ({ archivo: item.path, titulo: item.path.split("/").pop().replace(/\.(mp3|m4a|ogg|wav)$/i, "") }))
-      .sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
+      .sort((a, b) => {
+        const destacada = "Flower In A Hurricane (feat. Tame Impala, SZA, King Gizzard & The Lizard Wizard) [c9b5K6QBm-k].mp3";
+        const aDestacada = a.archivo.split("/").pop() === destacada;
+        const bDestacada = b.archivo.split("/").pop() === destacada;
+        if (aDestacada && !bDestacada) return -1;
+        if (!aDestacada && bDestacada) return 1;
+        return a.titulo.localeCompare(b.titulo, "es");
+      });
 
     gtaCargado = true;
     renderGTA(searchGTA.value);
