@@ -1203,9 +1203,10 @@ async function cargarGTA() {
       })
       .map(item => ({ archivo: item.path, titulo: item.path.split("/").pop().replace(/\.(mp3|m4a|ogg|wav)$/i, "") }))
       .sort((a, b) => {
-        const destacada = "Flower In A Hurricane (feat. Tame Impala, SZA, King Gizzard & The Lizard Wizard) [c9b5K6QBm-k].mp3";
-        const aDestacada = a.archivo.split("/").pop() === destacada;
-        const bDestacada = b.archivo.split("/").pop() === destacada;
+        // Fijar esta canción arriba independientemente de la extensión o mayúsculas.
+        const idDestacado = "[c9b5K6QBm-k]";
+        const aDestacada = a.titulo.toLocaleLowerCase("es").includes(idDestacado.toLocaleLowerCase("es"));
+        const bDestacada = b.titulo.toLocaleLowerCase("es").includes(idDestacado.toLocaleLowerCase("es"));
         if (aDestacada && !bDestacada) return -1;
         if (!aDestacada && bDestacada) return 1;
         return a.titulo.localeCompare(b.titulo, "es");
